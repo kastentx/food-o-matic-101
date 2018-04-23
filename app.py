@@ -48,8 +48,8 @@ def load_graph(model_file):
 
   return graph
 
-def read_tensor_from_image_file(file_name, input_height=299, input_width=299,
-				input_mean=0, input_std=255):
+def read_tensor_from_image_file(file_name, input_height=224, input_width=224,
+				input_mean=128, input_std=128):
   input_name = "file_reader"
   output_name = "normalized"
   file_reader = tf.read_file(file_name, input_name)
@@ -73,6 +73,33 @@ def read_tensor_from_image_file(file_name, input_height=299, input_width=299,
 
   return result
 
+def read_tensor_from_image_url(loaded_image, image_url, input_height=224, input_width=224,
+				input_mean=128, input_std=128):
+  input_name = "file_reader"
+  output_name = "normalized"
+  #file_reader = tf.read_file(file_name, input_name)
+  if image_url.endswith(".png"):
+    image_reader = tf.image.decode_png(loaded_image, channels = 3,
+                                       name='png_reader')
+  elif image_url.endswith(".gif"):
+    image_reader = tf.squeeze(tf.image.decode_gif(loaded_image,
+                                                  name='gif_reader'))
+  elif image_url.endswith(".bmp"):
+    image_reader = tf.image.decode_bmp(loaded_image, name='bmp_reader')
+  else:
+    image_reader = tf.image.decode_jpeg(loaded_image, channels = 3,
+                                        name='jpeg_reader')
+  float_caster = tf.cast(image_reader, tf.float32)
+  dims_expander = tf.expand_dims(float_caster, 0);
+  resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
+  normalized = tf.divide(tf.subtract(resized, [input_mean]), [input_std])
+  sess = tf.Session()
+  result = sess.run(normalized)
+
+  return result
+
+
+
 def load_labels(label_file):
   label = []
   proto_as_ascii_lines = tf.gfile.GFile(label_file).readlines()
@@ -88,21 +115,26 @@ def test_route():
 def classify_web():
     # load image from url
     image_url = request.args['url']
-    image_data = Image.open(requests.get(image_url, stream=True).raw)
+    #image_data = Image.open(requests.get(image_url, stream=True).raw)
+
+    # try it with passing the string data instead of actual image
+    image_data = requests.get(image_url, stream=True).content
+
+    image_tensor = read_tensor_from_image_url(image_data, image_url)
 
     # process the image so its valid input
-    float_caster = tf.cast(image_data, tf.float32)
-    dims_expander = tf.expand_dims(float_caster, 0);
-    resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
-    normalized = tf.divide(tf.subtract(resized, [input_mean]), [input_std])
-    sess = tf.Session()
-    result = sess.run(normalized)
+    #float_caster = tf.cast(image_tensor, tf.float32)
+    #dims_expander = tf.expand_dims(float_caster, 0);
+    #resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
+    #normalized = tf.divide(tf.subtract(resized, [input_mean]), [input_std])
+    #sess = tf.Session()
+    #result = sess.run(normalized)
 
     # make prediction
     with tf.Session(graph=graph) as sess:
         start = time.time()
         results = sess.run(output_operation.outputs[0],
-                      {input_operation.outputs[0]: result})
+                      {input_operation.outputs[0]: image_tensor})
         end=time.time()
         results = np.squeeze(results)
 
