@@ -1,6 +1,6 @@
 # app.py
 #
-# Serves a MobileNet based 
+# Serves a MobileNet based
 # food image-recognition model as a Flask service
 #
 # Inspired by / Adapted from 'tensorflask'
@@ -8,9 +8,9 @@
 #
 # https://github.com/ActiveState/tensorflask
 #
-# Trained using the food-101 dataset 
+# Trained using the food-101 dataset
 # https://www.vision.ee.ethz.ch/datasets_extra/food-101/
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
