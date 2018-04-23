@@ -77,6 +77,11 @@ def load_labels(label_file):
   return label
 
 @app.route('/')
+def test_route():
+  return jsonify("Hello Flask.")
+
+
+@app.route('/predict')
 def classify():
     file_name = request.args['file']
 
