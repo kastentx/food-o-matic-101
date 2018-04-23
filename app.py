@@ -31,6 +31,10 @@ from flask import Flask, jsonify, request
 import numpy as np
 import tensorflow as tf
 
+import requests
+from io import BytesIO
+from PIL import Image
+
 app = Flask(__name__)
 
 def load_graph(model_file):
@@ -79,6 +83,38 @@ def load_labels(label_file):
 @app.route('/')
 def test_route():
   return jsonify("Hello Flask.")
+
+@app.route('/predict_web')
+def classify_web():
+    # load image from url
+    image_url = request.args['url']
+    image_data = Image.open(requests.get(image_url, stream=True).raw)
+
+    # process the image so its valid input
+    float_caster = tf.cast(image_data, tf.float32)
+    dims_expander = tf.expand_dims(float_caster, 0);
+    resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
+    normalized = tf.divide(tf.subtract(resized, [input_mean]), [input_std])
+    sess = tf.Session()
+    result = sess.run(normalized)
+
+    # make prediction
+    with tf.Session(graph=graph) as sess:
+        start = time.time()
+        results = sess.run(output_operation.outputs[0],
+                      {input_operation.outputs[0]: result})
+        end=time.time()
+        results = np.squeeze(results)
+
+        top_k = results.argsort()[-5:][::-1]
+        labels = load_labels(label_file)
+
+    print('\nEvaluation time (1-image): {:.3f}s\n'.format(end-start))
+
+    for i in top_k:
+        print(labels[i], results[i])
+
+    return jsonify(labels,results.tolist())
 
 
 @app.route('/predict')
