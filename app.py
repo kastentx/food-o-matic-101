@@ -32,8 +32,6 @@ import numpy as np
 import tensorflow as tf
 
 import requests
-from io import BytesIO
-from PIL import Image
 
 app = Flask(__name__)
 
@@ -48,46 +46,20 @@ def load_graph(model_file):
 
   return graph
 
-def read_tensor_from_image_file(file_name, input_height=224, input_width=224,
+def read_tensor_from_image_url(image_data, image_url, input_height=224, input_width=224,
 				input_mean=128, input_std=128):
   input_name = "file_reader"
   output_name = "normalized"
-  file_reader = tf.read_file(file_name, input_name)
-  if file_name.endswith(".png"):
-    image_reader = tf.image.decode_png(file_reader, channels = 3,
-                                       name='png_reader')
-  elif file_name.endswith(".gif"):
-    image_reader = tf.squeeze(tf.image.decode_gif(file_reader,
-                                                  name='gif_reader'))
-  elif file_name.endswith(".bmp"):
-    image_reader = tf.image.decode_bmp(file_reader, name='bmp_reader')
-  else:
-    image_reader = tf.image.decode_jpeg(file_reader, channels = 3,
-                                        name='jpeg_reader')
-  float_caster = tf.cast(image_reader, tf.float32)
-  dims_expander = tf.expand_dims(float_caster, 0);
-  resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
-  normalized = tf.divide(tf.subtract(resized, [input_mean]), [input_std])
-  sess = tf.Session()
-  result = sess.run(normalized)
-
-  return result
-
-def read_tensor_from_image_url(loaded_image, image_url, input_height=224, input_width=224,
-				input_mean=128, input_std=128):
-  input_name = "file_reader"
-  output_name = "normalized"
-  #file_reader = tf.read_file(file_name, input_name)
   if image_url.endswith(".png"):
-    image_reader = tf.image.decode_png(loaded_image, channels = 3,
+    image_reader = tf.image.decode_png(image_data, channels = 3,
                                        name='png_reader')
   elif image_url.endswith(".gif"):
-    image_reader = tf.squeeze(tf.image.decode_gif(loaded_image,
+    image_reader = tf.squeeze(tf.image.decode_gif(image_data,
                                                   name='gif_reader'))
   elif image_url.endswith(".bmp"):
-    image_reader = tf.image.decode_bmp(loaded_image, name='bmp_reader')
+    image_reader = tf.image.decode_bmp(image_data, name='bmp_reader')
   else:
-    image_reader = tf.image.decode_jpeg(loaded_image, channels = 3,
+    image_reader = tf.image.decode_jpeg(image_data, channels = 3,
                                         name='jpeg_reader')
   float_caster = tf.cast(image_reader, tf.float32)
   dims_expander = tf.expand_dims(float_caster, 0);
@@ -105,6 +77,11 @@ def load_labels(label_file):
     label.append(l.rstrip())
   return label
 
+def get_ranking(top_5_labels_with_scores):
+  x = top_5_labels_with_scores
+  sorted_x = sorted(x, key=x.get, reverse=True)
+  return {rank: key for rank, key in enumerate(sorted_x, 1)}
+
 @app.route('/')
 def test_route():
   return jsonify("Hello Flask.")
@@ -113,20 +90,8 @@ def test_route():
 def classify_web():
     # load image from url
     image_url = request.args['url']
-    #image_data = Image.open(requests.get(image_url, stream=True).raw)
-
-    # try it with passing the string data instead of actual image
     image_data = requests.get(image_url, stream=True).content
-
     image_tensor = read_tensor_from_image_url(image_data, image_url)
-
-    # process the image so its valid input
-    #float_caster = tf.cast(image_tensor, tf.float32)
-    #dims_expander = tf.expand_dims(float_caster, 0);
-    #resized = tf.image.resize_bilinear(dims_expander, [input_height, input_width])
-    #normalized = tf.divide(tf.subtract(resized, [input_mean]), [input_std])
-    #sess = tf.Session()
-    #result = sess.run(normalized)
 
     # make prediction
     with tf.Session(graph=graph) as sess:
@@ -141,40 +106,15 @@ def classify_web():
 
     print('\nEvaluation time (1-image): {:.3f}s\n'.format(end-start))
 
-    top_5_thing = {}
+    top_5_rank = {}
+    top_5_score = {}
     for i in top_k:
         print(labels[i], results[i])
-        top_5_thing[labels[i]] = results[i] 
+        top_5_score[labels[i]] = np.float64(results[i]).item()
+        top_5_rank = get_ranking(top_5_score)
 
 
-    return jsonify(top_5_thing)
-
-@app.route('/predict')
-def classify():
-    file_name = request.args['file']
-
-    t = read_tensor_from_image_file(file_name,
-                                  input_height=input_height,
-                                  input_width=input_width,
-                                  input_mean=input_mean,
-                                  input_std=input_std)
-        
-    with tf.Session(graph=graph) as sess:
-        start = time.time()
-        results = sess.run(output_operation.outputs[0],
-                      {input_operation.outputs[0]: t})
-        end=time.time()
-        results = np.squeeze(results)
-
-        top_k = results.argsort()[-5:][::-1]
-        labels = load_labels(label_file)
-
-    print('\nEvaluation time (1-image): {:.3f}s\n'.format(end-start))
-
-    for i in top_k:
-        print(labels[i], results[i])
-
-    return jsonify(labels,results.tolist())
+    return jsonify(rank=top_5_rank, score=top_5_score)
 
 # GOTTA HAVE THOSE GLOBALS DEFINED YALL
 
@@ -196,3 +136,6 @@ input_name = "import/" + input_layer
 output_name = "import/" + output_layer
 input_operation = graph.get_operation_by_name(input_name);
 output_operation = graph.get_operation_by_name(output_name);
+
+if __name__ == '__main__':
+  app.run(debug=True)
