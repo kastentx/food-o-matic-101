@@ -1,4 +1,6 @@
 numpy==1.14.2
+requests==2.18.4
 Flask==0.12.2
-tensorflow==1.7.0
 gunicorn==19.7.1
+Pillow==5.1.0
+tensorflow==1.7.0
