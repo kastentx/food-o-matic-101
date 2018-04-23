@@ -98,8 +98,6 @@ def read_tensor_from_image_url(loaded_image, image_url, input_height=224, input_
 
   return result
 
-
-
 def load_labels(label_file):
   label = []
   proto_as_ascii_lines = tf.gfile.GFile(label_file).readlines()
@@ -113,32 +111,6 @@ def test_route():
 
 @app.route('/predict_web')
 def classify_web():
-
-    # putting this in here so graph isn't undefined
-    # TensorFlow configuration/initialization
-    model_file = "retrained_graph.pb"
-    label_file = "retrained_labels.txt"
-    input_height = 224
-    input_width = 224
-    input_mean = 128
-    input_std = 128
-    input_layer = "Placeholder"
-    output_layer = "final_result"
-
-    # Load TensorFlow Graph from disk
-    graph = load_graph(model_file)
-
-    # Grab the Input/Output operations
-    input_name = "import/" + input_layer
-    output_name = "import/" + output_layer
-    input_operation = graph.get_operation_by_name(input_name);
-    output_operation = graph.get_operation_by_name(output_name);
-    # the sutff above was taken from main
-
-
-
-
-
     # load image from url
     image_url = request.args['url']
     #image_data = Image.open(requests.get(image_url, stream=True).raw)
@@ -174,7 +146,6 @@ def classify_web():
 
     return jsonify(labels,results.tolist())
 
-
 @app.route('/predict')
 def classify():
     file_name = request.args['file']
@@ -202,26 +173,26 @@ def classify():
 
     return jsonify(labels,results.tolist())
 
-if __name__ == '__main__':
-    # TensorFlow configuration/initialization
-    model_file = "retrained_graph.pb"
-    label_file = "retrained_labels.txt"
-    input_height = 224
-    input_width = 224
-    input_mean = 128
-    input_std = 128
-    input_layer = "Placeholder"
-    output_layer = "final_result"
+# GOTTA HAVE THOSE GLOBALS DEFINED YALL
 
-    # Load TensorFlow Graph from disk
-    graph = load_graph(model_file)
+# TensorFlow configuration/initialization
+model_file = "retrained_graph.pb"
+label_file = "retrained_labels.txt"
+input_height = 224
+input_width = 224
+input_mean = 128
+input_std = 128
+input_layer = "Placeholder"
+output_layer = "final_result"
 
-    # Grab the Input/Output operations
-    input_name = "import/" + input_layer
-    output_name = "import/" + output_layer
-    input_operation = graph.get_operation_by_name(input_name);
-    output_operation = graph.get_operation_by_name(output_name);
+# Load TensorFlow Graph from disk
+graph = load_graph(model_file)
 
-    # Initialize the Flask Service
-    # Obviously, disable Debug in actual Production
-    app.run()
+# Grab the Input/Output operations
+input_name = "import/" + input_layer
+output_name = "import/" + output_layer
+input_operation = graph.get_operation_by_name(input_name);
+output_operation = graph.get_operation_by_name(output_name);
+
+# FIRE IT UP
+app.run()
