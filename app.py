@@ -193,6 +193,3 @@ input_name = "import/" + input_layer
 output_name = "import/" + output_layer
 input_operation = graph.get_operation_by_name(input_name);
 output_operation = graph.get_operation_by_name(output_name);
-
-# FIRE IT UP
-app.run()
