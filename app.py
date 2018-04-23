@@ -141,10 +141,13 @@ def classify_web():
 
     print('\nEvaluation time (1-image): {:.3f}s\n'.format(end-start))
 
+    top_5_thing = {}
     for i in top_k:
         print(labels[i], results[i])
+        top_5_thing[labels[i]] = results[i] 
 
-    return jsonify(labels,results.tolist())
+
+    return jsonify(top_5_thing)
 
 @app.route('/predict')
 def classify():
