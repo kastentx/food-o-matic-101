@@ -111,7 +111,7 @@ def classify():
 if __name__ == '__main__':
     # TensorFlow configuration/initialization
     model_file = "retrained_graph.pb"
-    label_file = "/retrained_labels.txt"
+    label_file = "retrained_labels.txt"
     input_height = 224
     input_width = 224
     input_mean = 128
