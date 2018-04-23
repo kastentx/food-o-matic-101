@@ -1,10 +1,16 @@
 # app.py
 #
-# A simple example of hosting a TensorFlow model as a Flask service
+# Serves a MobileNet based 
+# food image-recognition model as a Flask service
 #
-# Copyright 2017 ActiveState Software Inc.
-# Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+# Inspired by / Adapted from 'tensorflask'
+# by The TensorFlow Authors and ActiveState.
 #
+# https://github.com/ActiveState/tensorflask
+#
+# Trained using the food-101 dataset 
+# https://www.vision.ee.ethz.ch/datasets_extra/food-101/
+# 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
